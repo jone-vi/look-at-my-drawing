@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17.4
+    environment:
+      - POSTGRES_USER=drawingapp
+      - POSTGRES_PASSWORD=devpassword
+      - POSTGRES_DB=drawingapp
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U drawingapp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    networks:
+      - backend-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:9.3.0
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=dev@example.com
+      - PGADMIN_DEFAULT_PASSWORD=devpassword
+    ports:
+      - "5050:80"
+    volumes:
+      - ./pgadmin-servers.json:/pgadmin4/servers.json  # Pre-configured server connections
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend-network
+
+  auth-service:
+    build: ./services/auth-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./services/auth-service:/auth-service
+      - /auth-service/target
+    networks:
+      - backend-network
+      - frontend-network
+    environment:
+      - DATABASE_URL=postgres://drawingapp:devpassword@postgres:5432/drawingapp
+      - JWT_SECRET=${JWT_SECRET}
+      - RUST_LOG=debug
+    ports:
+      - "8083:8080"
+
+
+networks:
+  backend-network:
+    driver: bridge
+    # Internal network for services to communicate
+  frontend-network:
+    driver: bridge
+    # Network for frontend-facing services
+
+volumes:
+  postgres-data:

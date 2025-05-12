@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Drawing App Database",
+      "Group": "Development",
+      "Port": 5432,
+      "Username": "drawingapp",
+      "Host": "postgres",
+      "SSLMode": "prefer",
+      "MaintenanceDB": "drawingapp",
+      "PassFile": "/var/lib/pgadmin/pgpassfile"
+    }
+  }
+}

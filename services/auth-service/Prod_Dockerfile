@@ -1,0 +1,21 @@
+FROM rust:1.86.0-slim-bookworm AS builder
+
+RUN USER=root cargo new --bin auth-service
+WORKDIR /auth-service
+
+COPY ./Cargo.lock ./Cargo.lock
+COPY ./Cargo.toml ./Cargo.toml
+
+RUN cargo build --release
+RUN rm src/*.rs
+
+COPY ./src ./src 
+
+RUN rm ./target/release/auth-service
+ENV DATABASE_URL=postgres://drawingapp:devpassword@host.docker.internal:5432/drawingapp
+RUN cargo build --release
+
+FROM rust:1.86.0-slim-bookworm
+
+COPY --from=builder /auth-service/target/release/auth-service . 
+CMD ["./auth-service"]
